@@ -1,5 +1,4 @@
 services:
-  # Web dashboard
   - type: web
     name: noindex-monitor
     runtime: python
@@ -16,32 +15,4 @@ services:
       - key: APP_URL
         sync: false
       - key: DATABASE_URL
-        value: sqlite:////var/data/noindex.db
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
-
-  # Daily cron job
-  - type: cron
-    name: noindex-daily-scan
-    runtime: python
-    plan: free
-    schedule: "0 14 * * *"
-    buildCommand: pip install -r requirements.txt
-    startCommand: python cron_scan.py
-    envVars:
-      - key: GOOGLE_SHEET_ID
-        sync: false
-      - key: GOOGLE_SA_FILE
-        value: /etc/secrets/service_account.json
-      - key: SLACK_WEBHOOK_URL
-        sync: false
-      - key: APP_URL
-        sync: false
-      - key: DATABASE_URL
-        value: sqlite:////var/data/noindex.db
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
+        value: sqlite:////tmp/noindex.db
