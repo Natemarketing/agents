@@ -1,0 +1,10 @@
+flask==3.1.1
+flask-sqlalchemy==3.1.1
+requests==2.32.3
+beautifulsoup4==4.13.4
+gspread==6.1.4
+google-auth==2.38.0
+google-api-python-client==2.149.0
+python-dotenv==1.1.0
+gunicorn==23.0.0
+pymysql==1.1.1
