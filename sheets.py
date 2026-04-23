@@ -22,6 +22,7 @@ import re
 from urllib.parse import urlparse
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from database import db, Client, URL, ClientConfig
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -89,6 +90,21 @@ def _is_valid_page_url(url: str) -> bool:
         return domain not in SKIP_DOMAINS
     except Exception:
         return False
+
+
+def _is_permission_error(exc: Exception) -> bool:
+    """Check if an exception is a permission/auth error we should skip quickly."""
+    if isinstance(exc, HttpError):
+        if exc.resp.status in (403, 404):
+            return True
+    msg = str(exc).lower()
+    return (
+        "permission" in msg
+        or "403" in msg
+        or "404" in msg
+        or "not found" in msg
+        or "permission_denied" in msg
+    )
 
 
 def _get_master_clients() -> list[dict]:
@@ -314,7 +330,7 @@ def sync_clients_from_sheet(app) -> dict:
         except Exception as e:
             return {"clients": 0, "urls": 0, "errors": [f"Master sheet: {str(e)[:200]}"]}
 
-        summary = {"clients": 0, "urls": 0, "errors": []}
+        summary = {"clients": 0, "urls": 0, "errors": [], "skipped": 0}
 
         for mc in master_clients:
             name = mc["name"]
@@ -329,10 +345,16 @@ def sync_clients_from_sheet(app) -> dict:
 
             config = ClientConfig.query.filter_by(client_id=client.id).first()
 
+            # Try to read the client's sheet, skip fast if no permission
             try:
                 urls = _get_urls_from_client_sheet(sheet_id, config)
             except Exception as e:
-                summary["errors"].append(f"{name}: {str(e)[:200]}")
+                if _is_permission_error(e):
+                    # Skip unshared/deleted sheets quickly without blocking sync
+                    summary["skipped"] += 1
+                    summary["errors"].append(f"{name}: not shared with service account (skipped)")
+                else:
+                    summary["errors"].append(f"{name}: {str(e)[:200]}")
                 continue
 
             if not urls:
