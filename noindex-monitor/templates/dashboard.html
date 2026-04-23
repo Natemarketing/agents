@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noindex Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="header-left">
+                <h1>Noindex Monitor</h1>
+                <span class="subtitle">Monochrome Marketing</span>
+            </div>
+            <div class="header-actions">
+                <button id="btn-sync" class="btn btn-secondary" onclick="syncSheet()">Sync Sheet</button>
+                <button id="btn-scan" class="btn btn-primary" onclick="runFullScan()">Run Full Scan</button>
+            </div>
+        </header>
+
+        <div class="stats-bar" id="stats-bar"></div>
+
+        <div class="search-row">
+            <input type="text" id="search" placeholder="Filter clients..." oninput="renderClients()">
+        </div>
+
+        <div class="client-grid" id="client-grid">
+            <div class="loading">Loading clients...</div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
