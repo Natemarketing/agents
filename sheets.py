@@ -10,11 +10,9 @@ Client matrices:
 - Uses ClientConfig if set, otherwise falls back to auto-detect:
   auto-detect = scan all columns for hyperlinked URLs, skip Google Docs/Drive links
 
-ClientConfig options:
-  url_column:  "auto" | "A" | "B" | "E" etc.
-  url_type:    "full_url" | "slug"
-  base_domain: "https://armordial.com" (only needed for slug type)
-  read_mode:   "hyperlink" | "text" | "both"
+MVP filtering:
+- If ONLY_CLIENT env var is set, only clients whose name contains that string
+  (case-insensitive) will be synced. All others are skipped instantly.
 """
 
 import os
@@ -28,6 +26,7 @@ from database import db, Client, URL, ClientConfig
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 MASTER_SHEET_ID = os.getenv("GOOGLE_SHEET_ID", "")
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SA_FILE", "service_account.json")
+ONLY_CLIENT = os.getenv("ONLY_CLIENT", "").strip().lower()
 
 RETIRED_MARKER = "retired clients"
 MAX_MASTER_ROWS = 200
@@ -336,6 +335,10 @@ def sync_clients_from_sheet(app) -> dict:
             name = mc["name"]
             sheet_id = mc["sheet_id"]
 
+            # MVP filter: skip everything except the ONLY_CLIENT if set
+            if ONLY_CLIENT and ONLY_CLIENT not in name.lower():
+                continue
+
             # Upsert client first (so we have an ID for config lookup)
             client = Client.query.filter_by(name=name).first()
             if not client:
@@ -350,7 +353,6 @@ def sync_clients_from_sheet(app) -> dict:
                 urls = _get_urls_from_client_sheet(sheet_id, config)
             except Exception as e:
                 if _is_permission_error(e):
-                    # Skip unshared/deleted sheets quickly without blocking sync
                     summary["skipped"] += 1
                     summary["errors"].append(f"{name}: not shared with service account (skipped)")
                 else:
